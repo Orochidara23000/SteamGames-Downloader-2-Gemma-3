@@ -12,8 +12,8 @@ def create_interface() -> gr.Blocks:
     """Create the Gradio interface."""
     from config import settings
     
-    api_port = settings.PORT
-    api_url = f"http://localhost:{api_port}"
+    # Use base path for API requests
+    api_url = ""  # Empty because we're making relative requests
     
     with gr.Blocks(title="Steam Games Downloader") as interface:
         gr.Markdown("# Steam Games Downloader")

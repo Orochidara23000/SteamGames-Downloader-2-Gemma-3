@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Server Settings
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
+    
+    # UI Settings
+    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "True").lower() == "true"
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
@@ -38,9 +41,6 @@ class Settings(BaseSettings):
     STEAM_API_URL: str = os.getenv("STEAM_API_URL", "https://store.steampowered.com/api")
     STEAM_GUARD_REQUIRED: bool = os.getenv("STEAM_GUARD_REQUIRED", "False").lower() == "true"
     STEAM_USERNAME: Optional[str] = os.getenv("STEAM_USERNAME")
-
-    # UI Settings
-    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "True").lower() == "true"
 
     def create_directories(self) -> None:
         """Create necessary directories if they don't exist."""

@@ -3,8 +3,10 @@ import os
 import sys
 import signal
 import uvicorn
+import gradio as gr
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from typing import Dict
 
 # Import project modules
@@ -13,6 +15,7 @@ from routes import router as api_routes
 from log_config import setup_logging
 from downloader import download_manager
 from steam_handler import steam_cmd
+from interface import create_interface
 
 # Set up logging
 logger = setup_logging(
@@ -43,6 +46,14 @@ async def root() -> Dict[str, str]:
 @app.get("/health")
 async def health_check() -> Dict[str, str]:
     return {"status": "healthy"}
+
+# Create Gradio interface and mount at /ui
+if settings.ENABLE_GRADIO:
+    logger.info("Setting up Gradio interface")
+    gradio_app = create_interface()
+    # Mount Gradio app at /ui path
+    app = gr.mount_gradio_app(app, gradio_app, path="/ui")
+    logger.info(f"Gradio UI will be available at: http://{settings.HOST}:{settings.PORT}/ui/")
 
 # Signal handlers
 def signal_handler(signum, frame):
@@ -77,6 +88,13 @@ def main():
         # Start download manager
         download_manager.start()
 
+        # Get Railway URL if available
+        railway_url = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+        if railway_url:
+            logger.info(f"Railway Public URL: https://{railway_url}")
+            if settings.ENABLE_GRADIO:
+                logger.info(f"Gradio UI available at: https://{railway_url}/ui/")
+        
         # Run the API server
         logger.info(f"Starting API server on {settings.HOST}:{settings.PORT}")
         uvicorn.run(
