@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     PORT: int = int(os.getenv("PORT", "8000"))
     
     # UI Settings
-    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "True").lower() == "true"
+    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "False").lower() == "true"
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
