@@ -24,8 +24,6 @@ class Settings(BaseSettings):
     # Server Settings
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
-    API_PORT: int = int(os.getenv("API_PORT", str(PORT)))
-    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "True").lower() == "true"
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
