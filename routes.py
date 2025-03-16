@@ -81,8 +81,8 @@ async def get_system_status() -> SystemMetrics:
         logger.error(f"Error retrieving system metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/health", response_model=APIResponse)
-async def health_check() -> APIResponse:
+@router.get("/health")
+async def health_check() -> Dict[str, str]:
     """Health check endpoint."""
-    return APIResponse(success=True, message="Service is running")
+    return {"status": "healthy"}
 

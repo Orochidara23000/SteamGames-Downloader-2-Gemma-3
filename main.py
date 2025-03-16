@@ -3,11 +3,9 @@ import os
 import sys
 import signal
 import uvicorn
-import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-import gradio as gr
+from typing import Dict
 
 # Import project modules
 from config import settings
@@ -15,7 +13,6 @@ from routes import router as api_routes
 from log_config import setup_logging
 from downloader import download_manager
 from steam_handler import steam_cmd
-from interface import create_interface
 
 # Set up logging
 logger = setup_logging(
@@ -37,10 +34,15 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_routes)
 
-# Add root redirect
+# Root endpoint for health checks
 @app.get("/")
-async def root():
-    return RedirectResponse(url="/docs")
+async def root() -> Dict[str, str]:
+    return {"status": "healthy"}
+
+# Health check endpoint
+@app.get("/health")
+async def health_check() -> Dict[str, str]:
+    return {"status": "healthy"}
 
 # Signal handlers
 def signal_handler(signum, frame):
@@ -57,6 +59,7 @@ def main():
         logger.info(f"Base directory: {settings.BASE_DIR}")
         logger.info(f"Persistent directory: {settings.PERSISTENT_DIR}")
         logger.info(f"Download directory: {settings.DOWNLOAD_DIR}")
+        logger.info(f"Port: {settings.PORT}")
         
         # Create directories
         settings.create_directories()
@@ -74,24 +77,13 @@ def main():
         # Start download manager
         download_manager.start()
 
-        # Set up Gradio interface
-        logger.info(f"Setting up Gradio interface")
-        gradio_interface = create_interface()
-        
-        # Mount FastAPI inside Gradio app
-        app_port = settings.PORT
-        app_url = f"http://localhost:{app_port}"
-        logger.info(f"API URL: {app_url}")
-        
-        # Launch Gradio with FastAPI
-        logger.info(f"Starting Gradio interface on port {settings.PORT}")
-        gradio_interface.launch(
-            server_name=settings.HOST,
-            server_port=settings.PORT,
-            prevent_thread_lock=False,  # This is important - let Gradio take over the main thread
-            show_api=False,
-            share=True,  # This will print a public URL if available
-            favicon_path=None
+        # Run the API server
+        logger.info(f"Starting API server on {settings.HOST}:{settings.PORT}")
+        uvicorn.run(
+            app,
+            host=settings.HOST,
+            port=settings.PORT,
+            log_level="info"
         )
 
     except Exception as e:

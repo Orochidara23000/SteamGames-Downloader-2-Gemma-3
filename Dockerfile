@@ -30,7 +30,7 @@ ENV PERSISTENT_DIR="/data"
 # Make the script executable
 RUN chmod +x /app/main.py
 
-# Expose ports
+# Expose port
 EXPOSE 8000
 
 # Command to run the application
