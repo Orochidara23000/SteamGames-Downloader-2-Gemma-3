@@ -44,12 +44,12 @@ def signal_handler(signum, frame):
 download_manager = DownloadManager()
 steam_cmd = SteamCMD()
 
-def run_fastapi():
+def run_fastapi(host, port):
     """Run the FastAPI server."""
     uvicorn.run(
         app,
-        host=settings.HOST,
-        port=int(settings.PORT) + 1,  # Use a different port for the API
+        host=host,
+        port=port,
         log_level="info"
     )
 
@@ -74,12 +74,16 @@ def main():
 
         # Create and launch Gradio interface
         interface = create_interface()
-        interface.launch(
-            server_name=settings.HOST,
-            server_port=settings.PORT,
-            share=True,
-            prevent_thread_lock=True
-        )
+        if settings.GRADIO_ENABLED:
+            interface.launch(
+                server_name=settings.HOST,
+                server_port=settings.PORT,
+                share=True,
+                prevent_thread_lock=True
+            )
+        else:
+            # Just run FastAPI directly if Gradio is disabled
+            run_fastapi(settings.HOST, settings.PORT)
 
         # Keep the main thread alive
         api_thread.join()
