@@ -3,9 +3,11 @@ import os
 import sys
 import signal
 import uvicorn
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+import gradio as gr
 
 # Import project modules
 from config import settings
@@ -13,6 +15,7 @@ from routes import router as api_routes
 from log_config import setup_logging
 from downloader import download_manager
 from steam_handler import steam_cmd
+from interface import create_interface
 
 # Set up logging
 logger = setup_logging(
@@ -71,13 +74,24 @@ def main():
         # Start download manager
         download_manager.start()
 
-        # Run API server
-        logger.info(f"Starting API server on {settings.HOST}:{settings.PORT}")
-        uvicorn.run(
-            app,
-            host=settings.HOST,
-            port=settings.PORT,
-            log_level="info"
+        # Set up Gradio interface
+        logger.info(f"Setting up Gradio interface")
+        gradio_interface = create_interface()
+        
+        # Mount FastAPI inside Gradio app
+        app_port = settings.PORT
+        app_url = f"http://localhost:{app_port}"
+        logger.info(f"API URL: {app_url}")
+        
+        # Launch Gradio with FastAPI
+        logger.info(f"Starting Gradio interface on port {settings.PORT}")
+        gradio_interface.launch(
+            server_name=settings.HOST,
+            server_port=settings.PORT,
+            prevent_thread_lock=False,  # This is important - let Gradio take over the main thread
+            show_api=False,
+            share=True,  # This will print a public URL if available
+            favicon_path=None
         )
 
     except Exception as e:

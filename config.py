@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     STEAM_GUARD_REQUIRED: bool = os.getenv("STEAM_GUARD_REQUIRED", "False").lower() == "true"
     STEAM_USERNAME: Optional[str] = os.getenv("STEAM_USERNAME")
 
+    # UI Settings
+    ENABLE_GRADIO: bool = os.getenv("ENABLE_GRADIO", "True").lower() == "true"
+
     def create_directories(self) -> None:
         """Create necessary directories if they don't exist."""
         for directory in [self.STEAMCMD_DIR, self.LOG_DIR, self.DOWNLOAD_DIR]:

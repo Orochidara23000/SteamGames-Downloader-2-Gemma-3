@@ -1,15 +1,19 @@
 import gradio as gr
 from typing import Dict, List, Optional, Any
 import requests
-import json
-from models import DownloadRequest
 import logging
+import json
+import os
+from models import DownloadRequest
 
 logger = logging.getLogger(__name__)
 
 def create_interface() -> gr.Blocks:
     """Create the Gradio interface."""
     from config import settings
+    
+    api_port = settings.PORT
+    api_url = f"http://localhost:{api_port}"
     
     with gr.Blocks(title="Steam Games Downloader") as interface:
         gr.Markdown("# Steam Games Downloader")
@@ -40,6 +44,17 @@ def create_interface() -> gr.Blocks:
         with gr.Tab("System"):
             system_info = gr.JSON(label="System Information")
             refresh_system_btn = gr.Button("Refresh System Info")
+            
+        with gr.Tab("API Access"):
+            gr.Markdown(f"### API Documentation")
+            gr.Markdown(f"Access the API documentation at [/docs](/docs)")
+            gr.Markdown(f"### API Endpoints")
+            gr.Markdown(f"- POST /downloads - Start a download")
+            gr.Markdown(f"- GET /downloads - List all downloads")
+            gr.Markdown(f"- GET /downloads/{{id}} - Get a specific download")
+            gr.Markdown(f"- DELETE /downloads/{{id}} - Cancel a download")
+            gr.Markdown(f"- GET /system - Get system metrics")
+            gr.Markdown(f"- GET /health - Health check")
 
         def toggle_login(anonymous: bool) -> Dict:
             return {"visible": not anonymous}
@@ -85,7 +100,7 @@ def create_interface() -> gr.Blocks:
 
                 # Make API request to start download
                 response = requests.post(
-                    f"http://localhost:{settings.API_PORT}/downloads",
+                    f"{api_url}/downloads",
                     json=request.dict()
                 )
                 
@@ -103,7 +118,7 @@ def create_interface() -> gr.Blocks:
         def get_downloads() -> List[List]:
             """Get all downloads for the table."""
             try:
-                response = requests.get(f"http://localhost:{settings.API_PORT}/downloads")
+                response = requests.get(f"{api_url}/downloads")
                 if response.status_code != 200:
                     return []
                     
@@ -133,7 +148,7 @@ def create_interface() -> gr.Blocks:
         def get_system_info() -> Dict:
             """Get system information."""
             try:
-                response = requests.get(f"http://localhost:{settings.API_PORT}/system")
+                response = requests.get(f"{api_url}/system")
                 if response.status_code == 200:
                     return response.json()
                 return {"error": "Failed to get system info"}
@@ -154,31 +169,5 @@ def create_interface() -> gr.Blocks:
         # Initial data load
         interface.load(get_downloads, outputs=downloads_table)
         interface.load(get_system_info, outputs=system_info)
-        
-        # Auto-refresh using compatible method
-        # Some versions of Gradio don't have Interval, so we'll use a different approach
-        def auto_refresh():
-            # Schedule the next refresh
-            gr.module.job.BackgroundTask(
-                get_downloads, inputs=None, outputs=downloads_table)
-            gr.module.job.BackgroundTask(
-                get_system_info, inputs=None, outputs=system_info)
-            
-        # Every 10 seconds, refresh data
-        # For older Gradio versions that don't support Interval
-        try:
-            if hasattr(gr, 'Interval'):
-                # Use Interval if available
-                gr.Interval(10, get_downloads, outputs=downloads_table)
-                gr.Interval(15, get_system_info, outputs=system_info)
-            else:
-                # Add manual refresh button for older versions
-                gr.Button("Auto Refresh").click(
-                    auto_refresh, 
-                    inputs=None, 
-                    outputs=None
-                )
-        except Exception as e:
-            logger.warning(f"Auto-refresh not available: {e}")
 
     return interface
