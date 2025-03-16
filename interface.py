@@ -155,8 +155,30 @@ def create_interface() -> gr.Blocks:
         interface.load(get_downloads, outputs=downloads_table)
         interface.load(get_system_info, outputs=system_info)
         
-        # Auto-refresh
-        gr.Interval(10, get_downloads, outputs=downloads_table)
-        gr.Interval(15, get_system_info, outputs=system_info)
+        # Auto-refresh using compatible method
+        # Some versions of Gradio don't have Interval, so we'll use a different approach
+        def auto_refresh():
+            # Schedule the next refresh
+            gr.module.job.BackgroundTask(
+                get_downloads, inputs=None, outputs=downloads_table)
+            gr.module.job.BackgroundTask(
+                get_system_info, inputs=None, outputs=system_info)
+            
+        # Every 10 seconds, refresh data
+        # For older Gradio versions that don't support Interval
+        try:
+            if hasattr(gr, 'Interval'):
+                # Use Interval if available
+                gr.Interval(10, get_downloads, outputs=downloads_table)
+                gr.Interval(15, get_system_info, outputs=system_info)
+            else:
+                # Add manual refresh button for older versions
+                gr.Button("Auto Refresh").click(
+                    auto_refresh, 
+                    inputs=None, 
+                    outputs=None
+                )
+        except Exception as e:
+            logger.warning(f"Auto-refresh not available: {e}")
 
     return interface

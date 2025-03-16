@@ -44,8 +44,9 @@ def signal_handler(signum, frame):
 download_manager = DownloadManager()
 steam_cmd = SteamCMD()
 
-def run_fastapi(host, port):
+def run_fastapi(host: str, port: int):
     """Run the FastAPI server."""
+    logger.info(f"Starting API server on {host}:{port}")
     uvicorn.run(
         app,
         host=host,
@@ -56,6 +57,12 @@ def run_fastapi(host, port):
 def main():
     """Main application entry point."""
     try:
+        # Log startup information
+        logger.info(f"Starting {settings.APP_NAME} v{settings.VERSION}")
+        logger.info(f"Base directory: {settings.BASE_DIR}")
+        logger.info(f"Persistent directory: {settings.PERSISTENT_DIR}")
+        logger.info(f"Download directory: {settings.DOWNLOAD_DIR}")
+        
         # Create directories
         settings.create_directories()
 
@@ -65,28 +72,40 @@ def main():
             if not steam_cmd.install():
                 raise Exception("Failed to install SteamCMD")
 
+        # Set up signal handlers
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
         # Start download manager
         download_manager.start()
 
-        # Start FastAPI in a separate thread
-        api_thread = threading.Thread(target=run_fastapi, daemon=True)
-        api_thread.start()
-
-        # Create and launch Gradio interface
-        interface = create_interface()
-        if settings.GRADIO_ENABLED:
+        # Use the PORT environment variable for the API if specified
+        api_port = settings.API_PORT
+        
+        # Start FastAPI server
+        if settings.ENABLE_GRADIO:
+            # Start FastAPI in a separate thread when using Gradio
+            api_thread = threading.Thread(
+                target=run_fastapi, 
+                args=(settings.HOST, api_port),
+                daemon=True
+            )
+            api_thread.start()
+            
+            # Create and launch Gradio interface
+            logger.info(f"Starting Gradio interface on {settings.HOST}:{settings.PORT}")
+            interface = create_interface()
             interface.launch(
                 server_name=settings.HOST,
                 server_port=settings.PORT,
-                share=True,
                 prevent_thread_lock=True
             )
+            
+            # Keep the main thread alive
+            api_thread.join()
         else:
             # Just run FastAPI directly if Gradio is disabled
-            run_fastapi(settings.HOST, settings.PORT)
-
-        # Keep the main thread alive
-        api_thread.join()
+            run_fastapi(settings.HOST, api_port)
 
     except Exception as e:
         logger.error(f"Application startup failed: {e}")
